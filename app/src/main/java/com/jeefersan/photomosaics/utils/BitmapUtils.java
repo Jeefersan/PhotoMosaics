@@ -44,8 +44,12 @@ public class BitmapUtils {
         double scaleFactor = (w * h) / Constants.MAX_RESOLUTION;
         Log.d("Bmputils","scalefactor: " + scaleFactor);
 
+        int w2 = (int)(w/scaleFactor);
+        int h2 = (int)(h/scaleFactor);
+
         Log.d("BmpUtils", "scaling..");
-        Bitmap.createScaledBitmap(bit, (int)(w / scaleFactor), (int)(h / scaleFactor), false);
+        Bitmap.createScaledBitmap(bit, w2,h2, false);
+
 
 
         Log.d("bmputils", "after mbitmap w h = " + bit.getWidth() + ", " + bit.getHeight());
