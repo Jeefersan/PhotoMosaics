@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModelProviders;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.ImageDecoder;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
@@ -24,6 +25,9 @@ import com.bumptech.glide.request.transition.Transition;
 import com.davemorrissey.labs.subscaleview.ImageSource;
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 import com.jeefersan.photomosaics.R;
+import com.jeefersan.photomosaics.utils.Loader;
+
+import java.io.IOException;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -33,17 +37,29 @@ import butterknife.OnClick;
  * Created by JeeferSan on 4-2-20.
  */
 
+/* TODO: architecture
+         Fix UI
+         switch fix, buttons and chunksize input
+         Show menu to choose between searchfromgallery of take image
+         Save output to gallery in specific map
+         Fetch drawables and save permanently in app
+         Let user choose own drawables
+         Share button : to whatsapp, facebook or email etc
+
+ */
+
 public class MainActivity extends AppCompatActivity {
 
     @BindView(R.id.imageView)
     ImageView mSelectedImg;
 
     @BindView(R.id.photoview)
-    SubsamplingScaleImageView mOutput;
+    ImageView mOutput;
 
     @OnClick(R.id.start)
     void click() {
-        if (mBitmap != null) {
+        if (mViewModel.getmBitmap() != null) {
+            mViewModel.getOutput();
             observe();
         }
     }
@@ -55,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
 
     private MainViewModel mViewModel;
     private Switch mSwitch;
-    private Bitmap mBitmap;
+
 
     private final String TAG = "MainActivity";
 
@@ -72,36 +88,14 @@ public class MainActivity extends AppCompatActivity {
 
         mViewModel = ViewModelProviders.of(this).get(MainViewModel.class);
 
+//        mLoader = new Loader(getApplication());
+
         mSwitch = findViewById(R.id.switch1);
         mSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+//            mLoader.setPixel(isChecked);
             mViewModel.setPixel(isChecked);
         });
 
-        Log.d(TAG, "onCreate");
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        Log.d(TAG, "onDestroy");
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        Log.d(TAG, "onStop");
-    }
-
-    @Override
-    protected void onPostResume() {
-        super.onPostResume();
-        Log.d(TAG, "onPostResume");
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        Log.d(TAG, "onResume");
     }
 
     private void pickFromGallery() {
@@ -109,12 +103,6 @@ public class MainActivity extends AppCompatActivity {
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
         pickImg.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         startActivityForResult(pickImg, REQUEST_GALLERY_PHOTO);
-    }
-
-    private void newFile(View view) {
-        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-
     }
 
     @Override
@@ -126,20 +114,19 @@ public class MainActivity extends AppCompatActivity {
             switch (requestCode) {
 
                 case REQUEST_GALLERY_PHOTO:
-                    Uri selectedImg = null;
-                    if (data != null) {
-                        selectedImg = data.getData();
+                    Uri selectedImg;
+                    if (data == null) {
+                        break;
                     }
-
+                    selectedImg = data.getData();
                     Glide.with(this)
                             .asBitmap()
                             .load(selectedImg)
                             .into(new CustomTarget<Bitmap>() {
                                 @Override
                                 public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
-                                    mBitmap = resource;
-                                    mViewModel.setBitmap(mBitmap);
-                                    mSelectedImg.setImageBitmap(mBitmap);
+                                    mViewModel.setBitmap(resource);
+                                    mSelectedImg.setImageBitmap(resource);
                                 }
 
                                 @Override
@@ -147,6 +134,8 @@ public class MainActivity extends AppCompatActivity {
                                     Log.d(TAG, "onLoadCleared");
                                 }
                             });
+
+
                     break;
 
             }
@@ -159,13 +148,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void observe() {
 
-        mViewModel.getOutput().observe(this, new Observer<Bitmap>() {
-            @Override
-            public void onChanged(Bitmap bitmap) {
-                if (bitmap != null) {
-                    mBitmap = bitmap;
-                    mOutput.setImage(ImageSource.bitmap(mBitmap));
-                }
+        mViewModel.outputLiveData.observe(this, bitmap -> {
+            if (bitmap != null) {
+                mOutput.setImageBitmap(bitmap);
             }
         });
 

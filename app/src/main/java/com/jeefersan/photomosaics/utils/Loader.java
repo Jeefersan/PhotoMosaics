@@ -1,5 +1,6 @@
 package com.jeefersan.photomosaics.utils;
 
+import android.app.Application;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -13,6 +14,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.MutableLiveData;
 
 import com.bumptech.glide.Glide;
@@ -34,13 +36,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
 
-public class Loader {
-    private MutableLiveData<Bitmap> output = new MutableLiveData<>();
+public class Loader extends AndroidViewModel {
+    public MutableLiveData<Bitmap> output;
 
     private final String TAG = "Loader";
     private static int CHUNKSIZE = Configs.CHUNKSIZE;
 
-    private Context mContext;
     private List<Bitmap> mBitmapChunks;
 
     private int[][] mColorAvgArray;
@@ -50,18 +51,13 @@ public class Loader {
 
     private Field[] drawableFields;
     private Drawable[] drawables;
-    private Bitmap mBitmap;
 
-    //image 900x1200
-    String imageUrl = "https://i.imgur.com/xdnMi.jpg";
+    private boolean isPixel;
 
-    //pikachu 600x600
-//    String imageUrl = "https://i.imgur.com/2ETw6qO.jpg";
-
-    public Loader(Context mContext) {
-        this.mContext = mContext;
+    public Loader(@NonNull Application application) {
+        super(application);
+        output = new MutableLiveData<>();
     }
-
 
     private List<Bitmap> splitImage(Bitmap bitmap) {
 
@@ -91,14 +87,15 @@ public class Loader {
 
         if (drawables == null) {
             drawables = new Drawable[drawableFields.length];
-        }
-        for (int i = 0; i < drawableFields.length; i++) {
-            try {
-                drawables[i] = mContext.getDrawable(drawableFields[i].getInt(null));
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            }
 
+            for (int i = 0; i < drawableFields.length; i++) {
+                try {
+                    drawables[i] = getApplication().getDrawable(drawableFields[i].getInt(null));
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+
+            }
         }
 
         return drawables;
@@ -224,22 +221,11 @@ public class Loader {
         FutureTask<Bitmap> future = new FutureTask<Bitmap>(callable);
         future.run();
 
-        Bitmap bit =null;
+        Bitmap bit = null;
 
         try {
             bit = future.get();
-            if (bit != null) {
-                final Bitmap bits = bit;
-                Log.d(TAG, "Succes");
 
-                mUiHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        output.setValue(bits);
-                    }
-                });
-
-            }
         } catch (ExecutionException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -248,56 +234,20 @@ public class Loader {
 
         return bit;
 
-
     }
 
-    public MutableLiveData<Bitmap> getOutput(Bitmap b, boolean isPix) {
-
-        Bitmap bits = b;
-
-        int[][] colorAvgArray = getColorAvgArray(splitImage(BitmapUtils.resize(bits)));
-
-        if (!isPix) {
-
-            Runnable runnable = new Runnable() {
-                @Override
-                public void run() {
-                    Drawable[] drawables = getDrawables();
-                    HashMap<Integer, Bitmap> map = bmpToMap(drawables);
-                    Bitmap[][] bmpArray = toClosestBmpArray(colorAvgArray, map);
-                    Bitmap bitmap1 = toMosaic(bmpArray);
-                    mUiHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            output.setValue(bitmap1);
-                        }
-                    });
-                }
-            };
-            Thread t = new Thread(runnable);
-            t.start();
-
-            while(t.isAlive()){
-                try {
-                    Thread.sleep(600);
-                    Log.d(TAG,"Calculating...");
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            return output;
-
+    public Bitmap getOutput(Bitmap b, boolean bool) {
+        Bitmap bitmap;
+        int[][] colorAvgArray = getColorAvgArray(splitImage(BitmapUtils.resize(b)));
+        if(bool){
+            return toPixelate(colorAvgArray);
         }
-        final Bitmap bit = toPixelate(colorAvgArray);
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                output.setValue(bit);
-            }
-        });
 
-        return output;
+        Drawable[] drawables = getDrawables();
+        HashMap<Integer, Bitmap> map = bmpToMap(drawables);
+        Bitmap[][] bmpArray = toClosestBmpArray(colorAvgArray, map);
+        return toMosaic(bmpArray);
+
 
     }
 
@@ -333,19 +283,21 @@ public class Loader {
 
         Bitmap beet = null;
 
-        if (future.isDone()) {
-            Log.d(TAG, "future is done");
 
-            try {
-                beet = future.get();
-                output.setValue(beet);
-            } catch (ExecutionException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+        try {
+            beet = future.get();
+            output.setValue(beet);
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
 
+
         return beet;
+    }
+
+    public void setPixel(boolean pixel) {
+        isPixel = pixel;
     }
 }
