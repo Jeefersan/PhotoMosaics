@@ -1,100 +1,111 @@
 package com.jeefersan.photomosaics.ui;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.lifecycle.Observer;
-import androidx.lifecycle.ViewModelProviders;
-
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.ImageDecoder;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
-import android.widget.CompoundButton;
+import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.Switch;
+import android.widget.PopupMenu;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.request.target.CustomTarget;
-import com.bumptech.glide.request.transition.Transition;
-import com.davemorrissey.labs.subscaleview.ImageSource;
-import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SwitchCompat;
+import androidx.core.content.FileProvider;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProviders;
+
+import com.github.chrisbanes.photoview.PhotoView;
+import com.jeefersan.photomosaics.BuildConfig;
+import com.jeefersan.photomosaics.Constants;
 import com.jeefersan.photomosaics.R;
-import com.jeefersan.photomosaics.utils.Loader;
+import com.jeefersan.photomosaics.utils.Utils;
 
+import java.io.File;
 import java.io.IOException;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+import butterknife.OnTouch;
 
 /**
  * Created by JeeferSan on 4-2-20.
  */
 
 /* TODO: architecture
-         Fix UI
-         switch fix, buttons and chunksize input
-         Show menu to choose between searchfromgallery of take image
          Save output to gallery in specific map
          Fetch drawables and save permanently in app
-         Let user choose own drawables
          Share button : to whatsapp, facebook or email etc
-
  */
 
 public class MainActivity extends AppCompatActivity {
-
-    @BindView(R.id.imageView)
-    ImageView mSelectedImg;
-
-    @BindView(R.id.photoview)
-    ImageView mOutput;
-
-    @OnClick(R.id.start)
-    void click() {
-        if (mViewModel.getmBitmap() != null) {
-            mViewModel.getOutput();
-            observe();
-        }
-    }
-
-    @OnClick(R.id.browse)
-    void onClick() {
-        pickFromGallery();
-    }
-
     private MainViewModel mViewModel;
-    private Switch mSwitch;
-
+    private SwitchCompat mSwitch;
+    private Button button;
+    private Uri imgUri;
 
     private final String TAG = "MainActivity";
-
-    private static final int CREATE_REQUEST_CODE = 10;
-    private static final int OPEN_REQUEST_CODE = 11;
-    private static final int SAVE_REQUEST_CODE = 12;
-    private static final int REQUEST_GALLERY_PHOTO = 13;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        initViews();
+
+        observe();
+
+    }
+
+    private void initViews() {
         ButterKnife.bind(this);
-
         mViewModel = ViewModelProviders.of(this).get(MainViewModel.class);
-
-//        mLoader = new Loader(getApplication());
-
+        mChunkInput.setText("" + 50);
+        button = findViewById(R.id.browse);
         mSwitch = findViewById(R.id.switch1);
         mSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-//            mLoader.setPixel(isChecked);
             mViewModel.setPixel(isChecked);
         });
+        button.setOnClickListener(v -> {
+            PopupMenu popupMenu = new PopupMenu(getApplicationContext(), button);
+            popupMenu.getMenuInflater().inflate(R.menu.popup_menu, popupMenu.getMenu());
+            popupMenu.setOnMenuItemClickListener(item -> {
+                switch (item.getItemId()) {
+                    case R.id.choose_from_gallery:
+                        pickFromGallery();
+                        return true;
+
+                    case R.id.take_new_photo:
+                        startCameraIntent();
+                        return true;
+                }
+                return false;
+            });
+            popupMenu.show();
+
+        });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK) {
+            switch (requestCode) {
+                case Constants.REQUEST_GALLERY_PHOTO:
+                    mViewModel.parseInput(data.getData());
+                    break;
+                case Constants.REQUEST_IMAGE_CAPTURE:
+                    mViewModel.parseInput(imgUri);
+                    break;
+            }
+
+        }
 
     }
 
@@ -102,58 +113,91 @@ public class MainActivity extends AppCompatActivity {
         Intent pickImg = new Intent(Intent.ACTION_PICK,
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
         pickImg.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        startActivityForResult(pickImg, REQUEST_GALLERY_PHOTO);
+        startActivityForResult(pickImg, Constants.REQUEST_GALLERY_PHOTO);
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
+    private void startCameraIntent(){
+        Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if(cameraIntent.resolveActivity(getPackageManager())!=null){
 
-        if (resultCode == RESULT_OK) {
-
-            switch (requestCode) {
-
-                case REQUEST_GALLERY_PHOTO:
-                    Uri selectedImg;
-                    if (data == null) {
-                        break;
-                    }
-                    selectedImg = data.getData();
-                    Glide.with(this)
-                            .asBitmap()
-                            .load(selectedImg)
-                            .into(new CustomTarget<Bitmap>() {
-                                @Override
-                                public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
-                                    mViewModel.setBitmap(resource);
-                                    mSelectedImg.setImageBitmap(resource);
-                                }
-
-                                @Override
-                                public void onLoadCleared(@Nullable Drawable placeholder) {
-                                    Log.d(TAG, "onLoadCleared");
-                                }
-                            });
-
-
-                    break;
-
+            File imgFile = null;
+            try{
+                imgFile = Utils.createImg(this);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            if(imgFile!=null){
+                imgUri = FileProvider.getUriForFile(getApplicationContext(), BuildConfig.APPLICATION_ID+".provider",imgFile);
+                cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, imgUri);
+                startActivityForResult(cameraIntent,Constants.REQUEST_IMAGE_CAPTURE);
             }
 
-
         }
-
     }
 
 
     private void observe() {
-
+        mViewModel.inputLiveData.observe(this, bitmap -> {
+            if (bitmap != null) {
+                mInput.setImageBitmap(bitmap);
+            }
+        });
         mViewModel.outputLiveData.observe(this, bitmap -> {
             if (bitmap != null) {
+                Log.d(TAG,"bitmap w h = " + bitmap.getWidth() + ", " + bitmap.getWidth());
                 mOutput.setImageBitmap(bitmap);
             }
         });
+        mViewModel.isLoading.observe(this, isLoading -> {
+            if(isLoading!=null){
+                Log.d(TAG,"loading value: " + isLoading);
+                loadingView.setVisibility(isLoading? View.VISIBLE : View.GONE);
+            }
+
+        });
 
 
+    }
+
+
+    @BindView(R.id.inputview)
+    ImageView mInput;
+
+    @BindView(R.id.output)
+    PhotoView mOutput;
+
+    @BindView(R.id.chunkinput)
+    TextView mChunkInput;
+
+    @BindView(R.id.progressBar2)
+    ProgressBar loadingView;
+
+    @OnClick(R.id.start)
+    void click() {
+        mViewModel.setChunkSize(Integer.parseInt(mChunkInput.getText().toString()));
+        if (mViewModel.getmBitmap() != null) {
+            mViewModel.getOutput();
+
+        }
+        observe();
+    }
+
+    @OnTouch(R.id.plus_button)
+    void plus() {
+        if (!Utils.isInRange(Integer.parseInt(mChunkInput.getText().toString()) + 1)) {
+            Utils.showToast(this);
+        } else {
+            mChunkInput.setText(String.valueOf(Integer.parseInt(mChunkInput.getText().toString()) + 1));
+        }
+    }
+
+
+    @OnTouch(R.id.minus_button)
+    void minus() {
+        if (!Utils.isInRange(Integer.parseInt(mChunkInput.getText().toString()) - 1)) {
+            Utils.showToast(this);
+        } else {
+            mChunkInput.setText(String.valueOf(Integer.parseInt(mChunkInput.getText().toString()) - 1));
+        }
     }
 }

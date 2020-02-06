@@ -1,7 +1,6 @@
 package com.jeefersan.photomosaics.utils;
 
 import android.app.Application;
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -13,19 +12,10 @@ import android.os.Looper;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.MutableLiveData;
 
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.request.Request;
-import com.bumptech.glide.request.target.CustomTarget;
-import com.bumptech.glide.request.target.SizeReadyCallback;
-import com.bumptech.glide.request.target.Target;
-import com.bumptech.glide.request.transition.Transition;
-import com.jeefersan.photomosaics.Configs;
 import com.jeefersan.photomosaics.R;
-import com.jeefersan.photomosaics.ui.MainActivity;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -37,26 +27,25 @@ import java.util.concurrent.FutureTask;
 
 
 public class Loader extends AndroidViewModel {
-    public MutableLiveData<Bitmap> output;
 
     private final String TAG = "Loader";
-    private static int CHUNKSIZE = Configs.CHUNKSIZE;
+    private int chunkSize;
 
     private List<Bitmap> mBitmapChunks;
 
     private int[][] mColorAvgArray;
-    private Handler mUiHandler = new Handler(Looper.getMainLooper());
 
     private int w, h, xChunks, yChunks;
 
-    private Field[] drawableFields;
+    private Bitmap mBitmap;
     private Drawable[] drawables;
+    private int[][] colorAvgArray;
+    private final HashMap<Integer, Bitmap> map;
 
-    private boolean isPixel;
 
     public Loader(@NonNull Application application) {
         super(application);
-        output = new MutableLiveData<>();
+        map = BitmapUtils.bmpToMap(getDrawables());
     }
 
     private List<Bitmap> splitImage(Bitmap bitmap) {
@@ -66,8 +55,8 @@ public class Loader extends AndroidViewModel {
         w = bitmap.getWidth();
         h = bitmap.getHeight();
 
-        xChunks = (int) Math.ceil((double) w / (double) CHUNKSIZE);
-        yChunks = (int) Math.ceil((double) h / (double) CHUNKSIZE);
+        xChunks = (int) Math.ceil((double) w / (double) chunkSize);
+        yChunks = (int) Math.ceil((double) h / (double) chunkSize);
 
         Log.d(TAG, "xchunks: " + xChunks);
         Log.d(TAG, "ychunks: " + yChunks);
@@ -75,7 +64,7 @@ public class Loader extends AndroidViewModel {
 
         for (int y = 0; y < yChunks; y++) {
             for (int x = 0; x < xChunks; x++) {
-                mBitmapChunks.add(Bitmap.createBitmap(bitmap, x * CHUNKSIZE, y * CHUNKSIZE, CHUNKSIZE, CHUNKSIZE));
+                mBitmapChunks.add(Bitmap.createBitmap(bitmap, x * chunkSize, y * chunkSize, chunkSize, chunkSize));
             }
         }
 
@@ -83,39 +72,26 @@ public class Loader extends AndroidViewModel {
     }
 
     private Drawable[] getDrawables() {
-        drawableFields = R.raw.class.getFields();
+        if (drawables != null) {
+            return drawables;
+        }
+        Field[] drawableFields = R.raw.class.getFields();
 
-        if (drawables == null) {
-            drawables = new Drawable[drawableFields.length];
+        Drawable[] drawables = new Drawable[drawableFields.length];
 
-            for (int i = 0; i < drawableFields.length; i++) {
-                try {
-                    drawables[i] = getApplication().getDrawable(drawableFields[i].getInt(null));
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                }
-
+        for (int i = 0; i < drawableFields.length; i++) {
+            try {
+                drawables[i] = getApplication().getDrawable(drawableFields[i].getInt(null));
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
             }
         }
-
         return drawables;
     }
 
-    private HashMap<Integer, Bitmap> bmpToMap(Drawable[] drawablesArr) {
-        HashMap<Integer, Bitmap> map = new HashMap<>();
-        Bitmap[] bmpArr = toBitmapArr(drawablesArr);
-        int avgColor;
-
-        for (Bitmap b : bmpArr) {
-            avgColor = BitmapUtils.getAvgColorInt(b);
-            map.put(avgColor, b);
-        }
-
-        return map;
-    }
 
     private Bitmap scaleImg(Bitmap bmp) {
-        return Bitmap.createScaledBitmap(bmp, CHUNKSIZE, CHUNKSIZE, false);
+        return Bitmap.createScaledBitmap(bmp, chunkSize, chunkSize, false);
     }
 
     private double getColorDiff(int c1, int c2) {
@@ -162,19 +138,6 @@ public class Loader extends AndroidViewModel {
 
     }
 
-    private Bitmap[] toBitmapArr(Drawable[] drawablesArr) {
-        Bitmap[] bmpArr = new Bitmap[drawablesArr.length];
-
-        BitmapDrawable b;
-
-        for (int i = 0; i < bmpArr.length; i++) {
-            b = (BitmapDrawable) drawablesArr[i];
-            bmpArr[i] = b.getBitmap();
-        }
-
-        return bmpArr;
-    }
-
 
     private int[][] getColorAvgArray(List<Bitmap> list) {
 
@@ -199,23 +162,20 @@ public class Loader extends AndroidViewModel {
 
         Bitmap mosaic = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
 
-        Callable<Bitmap> callable = new Callable<Bitmap>() {
-            @Override
-            public Bitmap call() throws Exception {
-                Bitmap m = mosaic;
-                Canvas canvas = new Canvas(mosaic);
-                Paint paint = new Paint();
-                Bitmap bmp = null;
+        Callable<Bitmap> callable = () -> {
+            Bitmap m = mosaic;
+            Canvas canvas = new Canvas(mosaic);
+            Paint paint = new Paint();
+            Bitmap bmp;
 
-                for (int i = 0; i < finalBmpArr.length; i++) {
-                    for (int j = 0; j < finalBmpArr[0].length; j++) {
-                        bmp = finalBmpArr[i][j];
-                        canvas.drawBitmap(bmp, j * CHUNKSIZE, i * CHUNKSIZE, paint);
-                    }
+            for (int i = 0; i < finalBmpArr.length; i++) {
+                for (int j = 0; j < finalBmpArr[0].length; j++) {
+                    bmp = finalBmpArr[i][j];
+                    canvas.drawBitmap(bmp, j * chunkSize, i * chunkSize, paint);
                 }
-
-                return m;
             }
+
+            return m;
         };
 
         FutureTask<Bitmap> future = new FutureTask<Bitmap>(callable);
@@ -236,18 +196,19 @@ public class Loader extends AndroidViewModel {
 
     }
 
-    public Bitmap getOutput(Bitmap b, boolean bool) {
-        Bitmap bitmap;
-        int[][] colorAvgArray = getColorAvgArray(splitImage(BitmapUtils.resize(b)));
-        if(bool){
+    public Bitmap getOutput(Bitmap b, int chunkSize, boolean bool) {
+        this.chunkSize = chunkSize;
+        if (mBitmap != b) {
+            this.mBitmap = b;
+            colorAvgArray = getColorAvgArray(splitImage(BitmapUtils.resize(b, chunkSize)));
+        }
+
+        if (bool) {
             return toPixelate(colorAvgArray);
         }
 
-        Drawable[] drawables = getDrawables();
-        HashMap<Integer, Bitmap> map = bmpToMap(drawables);
         Bitmap[][] bmpArray = toClosestBmpArray(colorAvgArray, map);
         return toMosaic(bmpArray);
-
 
     }
 
@@ -263,9 +224,9 @@ public class Loader extends AndroidViewModel {
 
             Paint paint = new Paint();
             paint.setAntiAlias(true);
-            int a = CHUNKSIZE;
+            int a = chunkSize;
             for (int y = 0; y < colorArr.length; y++) {
-                int b = y * CHUNKSIZE;
+                int b = y * chunkSize;
                 for (int x = 0; x < colorArr[0].length; x++) {
                     paint.setColor(colorArr[y][x]);
                     int left = x * a;
@@ -286,7 +247,6 @@ public class Loader extends AndroidViewModel {
 
         try {
             beet = future.get();
-            output.setValue(beet);
         } catch (ExecutionException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -297,7 +257,4 @@ public class Loader extends AndroidViewModel {
         return beet;
     }
 
-    public void setPixel(boolean pixel) {
-        isPixel = pixel;
-    }
 }

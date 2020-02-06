@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">PhotoMosaics</string>
+    <string name="choose_from_gallery">Choose from gallery</string>
+    <string name="take_new_photo">Take new photo</string>
 </resources>
