@@ -7,7 +7,7 @@
 
         <item name="colorPrimaryDark">@color/primary_dark</item>
         <item name="colorPrimary">@color/primary</item>
-        <item name="android:buttonStyle">@style/MyButton</item>
+<!--        <item name="android:buttonStyle">@style/MyButton</item>-->
         <item name="android:textColor">@color/primary_light</item>
         <item name="android:colorAccent">@color/accent</item>
         <item name="android:colorPrimary">@android:color/primary_text_dark</item>
@@ -24,6 +24,7 @@
         <item name="colorOnError">@color/design_default_color_error</item>
         <item name="colorOnSurface">@color/design_default_color_surface</item>
         <item name="scrimBackground">@color/mtrl_scrim_color</item>
+        <item name="switchStyle">@style/Widget.AppCompat.CompoundButton.Switch</item>
         <item name="textAppearanceHeadline1">@style/TextAppearance.MaterialComponents.Headline1</item>
         <item name="textAppearanceHeadline2">@style/TextAppearance.MaterialComponents.Headline2</item>
         <item name="textAppearanceHeadline3">@style/TextAppearance.MaterialComponents.Headline3</item>
@@ -44,9 +45,18 @@
 
     </style>
 
+    <style name="MyTheme2" parent="Theme.MaterialComponents.Bridge">
+        <item name="buttonStyle">@style/MyButton2</item>
+
+    </style>
+
+    <style name="MyButton2" parent="Widget.AppCompat.Button">
+        <item name="android:textColor">@color/primary_light</item>
+        <item name="cornerRadius">16dp</item>
+    </style>
 
 
-    <style name="MyButton" parent="@style/Widget.AppCompat.Button">
+    <style name="MyButton" parent="Widget.AppCompat.Button">
         <item name="android:background">@drawable/btn_design</item>
     </style>
 

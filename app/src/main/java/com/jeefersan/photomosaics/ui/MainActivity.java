@@ -28,6 +28,8 @@ import com.jeefersan.photomosaics.utils.Utils;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -66,14 +68,28 @@ public class MainActivity extends AppCompatActivity {
     private void initViews() {
         ButterKnife.bind(this);
         mViewModel = ViewModelProviders.of(this).get(MainViewModel.class);
-        mChunkInput.setText("" + 50);
+        mChunkInput.setText("" + 30);
+        loadingView.setVisibility(View.GONE);
         button = findViewById(R.id.browse);
         mSwitch = findViewById(R.id.switch1);
         mSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
             mViewModel.setPixel(isChecked);
         });
         button.setOnClickListener(v -> {
-            PopupMenu popupMenu = new PopupMenu(getApplicationContext(), button);
+            PopupMenu popupMenu = new PopupMenu(getApplicationContext(), v);
+
+            try {
+                Method method = popupMenu.getMenu().getClass().getDeclaredMethod("setOptionalIconsVisible",boolean.class);
+                method.setAccessible(true);
+                method.invoke(popupMenu.getMenu(),true);
+            } catch (NoSuchMethodException e) {
+                e.printStackTrace();
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            } catch (InvocationTargetException e) {
+                e.printStackTrace();
+            }
+
             popupMenu.getMenuInflater().inflate(R.menu.popup_menu, popupMenu.getMenu());
             popupMenu.setOnMenuItemClickListener(item -> {
                 switch (item.getItemId()) {

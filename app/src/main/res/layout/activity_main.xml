@@ -75,7 +75,6 @@
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="36dp"
-        android:background="@drawable/btn_design"
         android:checked="false"
         android:gravity="center"
         android:showText="false"
@@ -85,7 +84,7 @@
         app:layout_constraintBottom_toTopOf="@+id/guideline"
         app:layout_constraintEnd_toStartOf="@+id/guideline5"
         app:layout_constraintStart_toStartOf="@+id/guideline6"
-        app:track="@drawable/sw_track" />
+         />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guideline"
@@ -177,7 +176,6 @@
         android:layout_width="200dp"
         android:layout_height="200dp"
         android:background="#00FFFFFF"
-        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
