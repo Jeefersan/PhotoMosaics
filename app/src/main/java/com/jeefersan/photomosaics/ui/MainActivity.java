@@ -82,14 +82,14 @@ public class MainActivity extends AppCompatActivity {
         mStartBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                loadingView.setVisibility(View.VISIBLE);
+                observe();
 
-                if (mInput.getDrawable() != null && loadingView.getVisibility() == View.VISIBLE) {
+                if (mInput.getDrawable() != null) {
                     mViewModel.setChunkSize(Integer.parseInt(mChunkInput.getText().toString()));
                     mViewModel.getOutput();
                 }
 
-                observe();
+
             }
         });
         mBrowseBtn.setOnClickListener(v -> {
@@ -184,6 +184,7 @@ public class MainActivity extends AppCompatActivity {
         mViewModel.outputLiveData.observe(this, bitmap -> {
             if (bitmap != null) {
                 mOutput.setImageBitmap(bitmap);
+                mOutput.setVisibility(View.VISIBLE);
 
             }
         });
@@ -191,8 +192,9 @@ public class MainActivity extends AppCompatActivity {
             if (isLoading != null) {
                 Log.d(TAG, "loading value: " + isLoading);
                 loadingView.setVisibility(isLoading ? View.VISIBLE : View.GONE);
-            } else {
-                loadingView.setVisibility(View.VISIBLE);
+                if(isLoading){
+                    mOutput.setVisibility(View.GONE);
+                }
             }
 
         });
