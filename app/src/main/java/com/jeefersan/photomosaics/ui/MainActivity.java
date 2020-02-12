@@ -40,11 +40,6 @@ import butterknife.OnTouch;
  * Created by JeeferSan on 4-2-20.
  */
 
-/* TODO: architecture
-         Save output to gallery in specific map
-         Fetch drawables and save permanently in app
-         Share mBrowseBtn : to whatsapp, facebook or email etc
- */
 
 public class MainActivity extends AppCompatActivity {
     private MainViewModel mViewModel;
