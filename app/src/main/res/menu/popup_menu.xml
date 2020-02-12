@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <group>
+        <item
+            android:id="@+id/choose_from_gallery"
+            android:icon="@drawable/ic_image_black_24dp"
+            android:title="@string/choose_from_gallery"
+            app:showAsAction="ifRoom" />
+
+        <item
+            android:id="@+id/take_new_photo"
+            android:icon="@drawable/ic_camera_alt_black_24dp"
+            android:title="@string/take_new_photo" />
+    </group>
+
+
+</menu>

@@ -4,6 +4,8 @@ import android.app.Application;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -22,6 +24,8 @@ public class MainViewModel extends AndroidViewModel {
     public MutableLiveData<Bitmap> outputLiveData = new MutableLiveData<>();
     public MutableLiveData<Bitmap> inputLiveData = new MutableLiveData<>();
     public MutableLiveData<Boolean> isLoading = new MutableLiveData<>();
+
+    private Handler mUiHandler = new Handler(Looper.getMainLooper());
 
     private final String TAG = "MainViewModel";
     private Loader mLoader;
@@ -58,14 +62,18 @@ public class MainViewModel extends AndroidViewModel {
 
 
     public void getOutput() {
-        isLoading.setValue(true);
+        isLoading.postValue(true);
 
-        Bitmap bit = mLoader.getOutput(mBitmap, chunkSize, isPixel);
-        Log.d(TAG, "getOutput w h = " + bit.getWidth() + ", " + mBitmap.getHeight());
-        if (bit != null) {
-            Log.d(TAG, "isLoading : " + isLoading.getValue());
-            outputLiveData.setValue(bit);
-        }
+        new Thread(() -> {
+            Bitmap bit = mLoader.getOutput(mBitmap, chunkSize, isPixel);
+            Log.d(TAG, "getOutput w h = " + bit.getWidth() + ", " + mBitmap.getHeight());
+            if (bit != null) {
+                Log.d(TAG, "isLoading : " + isLoading.getValue());
+                isLoading.postValue(false);
+                outputLiveData.postValue(bit);
+            }
+        }).start();
+
 
 
     }

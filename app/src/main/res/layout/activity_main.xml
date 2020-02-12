@@ -9,6 +9,17 @@
     android:background="#00FFFFFF"
     tools:context=".ui.MainActivity">
 
+    <ProgressBar
+        android:id="@+id/loading_view"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:layout_gravity="center"
+        android:background="#00FFFFFF"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 
     <ImageView
@@ -28,39 +39,13 @@
         tools:srcCompat="@tools:sample/avatars[0]" />
 
 
+    <com.github.chrisbanes.photoview.PhotoView
+        android:id="@+id/output"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
 
-    <FrameLayout
-        android:id="@+id/frameLayout"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:background="@color/primary_light"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/guideline">
-
-        <ProgressBar
-            android:id="@+id/loading_view"
-            android:layout_width="200dp"
-            android:layout_height="200dp"
-            android:layout_gravity="center"
-            android:background="#00FFFFFF"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <com.github.chrisbanes.photoview.PhotoView
-            android:id="@+id/output"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
-            tools:srcCompat="@tools:sample/avatars[12]" />
-
-
-
-    </FrameLayout>
-
+        tools:srcCompat="@tools:sample/avatars[12]" />
 
 
     <Button
@@ -98,8 +83,7 @@
         android:thumb="@drawable/sw_thumb"
         app:layout_constraintBottom_toTopOf="@+id/guideline"
         app:layout_constraintEnd_toStartOf="@+id/guideline5"
-        app:layout_constraintStart_toStartOf="@+id/guideline6"
-         />
+        app:layout_constraintStart_toStartOf="@+id/guideline6" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guideline"
@@ -107,7 +91,6 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         app:layout_constraintGuide_begin="188dp" />
-
 
 
     <androidx.constraintlayout.widget.Guideline

@@ -73,7 +73,6 @@ public class MainActivity extends AppCompatActivity {
         mChunkInput.setText("" + 30);
 
         loadingView = findViewById(R.id.loading_view);
-        loadingView.setVisibility(View.GONE);
         mBrowseBtn = findViewById(R.id.browse);
         mStartBtn = findViewById(R.id.startBtn);
         mSwitch = findViewById(R.id.switch1);
@@ -83,12 +82,14 @@ public class MainActivity extends AppCompatActivity {
         mStartBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                loadingView.setVisibility(View.VISIBLE);
-                mViewModel.setChunkSize(Integer.parseInt(mChunkInput.getText().toString()));
-                if (mViewModel.getmBitmap() != null) {
+//                loadingView.setVisibility(View.VISIBLE);
+
+                if (mInput.getDrawable() != null && loadingView.getVisibility() == View.VISIBLE) {
+                    mViewModel.setChunkSize(Integer.parseInt(mChunkInput.getText().toString()));
                     mViewModel.getOutput();
                 }
-                MainActivity.this.observe();
+
+                observe();
             }
         });
         mBrowseBtn.setOnClickListener(v -> {
@@ -174,8 +175,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
-
     private void observe() {
         mViewModel.inputLiveData.observe(this, bitmap -> {
             if (bitmap != null) {
@@ -184,18 +183,19 @@ public class MainActivity extends AppCompatActivity {
         });
         mViewModel.outputLiveData.observe(this, bitmap -> {
             if (bitmap != null) {
-                Log.d(TAG, "bitmap w h = " + bitmap.getWidth() + ", " + bitmap.getWidth());
-//                loadingView.setVisibility(View.GONE);
                 mOutput.setImageBitmap(bitmap);
+
             }
         });
-//        mViewModel.isLoading.observe(this, isLoading -> {
-//            if (isLoading != null) {
-//                Log.d(TAG, "loading value: " + isLoading);
-//                loadingView.setVisibility(isLoading ? View.VISIBLE : View.GONE);
-//            }
-//
-//        });
+        mViewModel.isLoading.observe(this, isLoading -> {
+            if (isLoading != null) {
+                Log.d(TAG, "loading value: " + isLoading);
+                loadingView.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+            } else {
+                loadingView.setVisibility(View.VISIBLE);
+            }
+
+        });
 
 
     }
