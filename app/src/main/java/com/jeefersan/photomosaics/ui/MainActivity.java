@@ -1,13 +1,15 @@
 package com.jeefersan.photomosaics.ui;
 
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.ProgressBar;
@@ -17,7 +19,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.core.content.FileProvider;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
 
 import com.github.chrisbanes.photoview.PhotoView;
@@ -33,7 +34,6 @@ import java.lang.reflect.Method;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import butterknife.OnClick;
 import butterknife.OnTouch;
 
 /**
@@ -43,13 +43,15 @@ import butterknife.OnTouch;
 /* TODO: architecture
          Save output to gallery in specific map
          Fetch drawables and save permanently in app
-         Share button : to whatsapp, facebook or email etc
+         Share mBrowseBtn : to whatsapp, facebook or email etc
  */
 
 public class MainActivity extends AppCompatActivity {
     private MainViewModel mViewModel;
     private SwitchCompat mSwitch;
-    private Button button;
+    private Button mBrowseBtn;
+    private Button mStartBtn;
+    private ProgressBar loadingView;
     private Uri imgUri;
 
     private final String TAG = "MainActivity";
@@ -69,19 +71,33 @@ public class MainActivity extends AppCompatActivity {
         ButterKnife.bind(this);
         mViewModel = ViewModelProviders.of(this).get(MainViewModel.class);
         mChunkInput.setText("" + 30);
+
+        loadingView = findViewById(R.id.loading_view);
         loadingView.setVisibility(View.GONE);
-        button = findViewById(R.id.browse);
+        mBrowseBtn = findViewById(R.id.browse);
+        mStartBtn = findViewById(R.id.startBtn);
         mSwitch = findViewById(R.id.switch1);
         mSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
             mViewModel.setPixel(isChecked);
         });
-        button.setOnClickListener(v -> {
+        mStartBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                loadingView.setVisibility(View.VISIBLE);
+                mViewModel.setChunkSize(Integer.parseInt(mChunkInput.getText().toString()));
+                if (mViewModel.getmBitmap() != null) {
+                    mViewModel.getOutput();
+                }
+                MainActivity.this.observe();
+            }
+        });
+        mBrowseBtn.setOnClickListener(v -> {
             PopupMenu popupMenu = new PopupMenu(getApplicationContext(), v);
 
             try {
-                Method method = popupMenu.getMenu().getClass().getDeclaredMethod("setOptionalIconsVisible",boolean.class);
+                Method method = popupMenu.getMenu().getClass().getDeclaredMethod("setOptionalIconsVisible", boolean.class);
                 method.setAccessible(true);
-                method.invoke(popupMenu.getMenu(),true);
+                method.invoke(popupMenu.getMenu(), true);
             } catch (NoSuchMethodException e) {
                 e.printStackTrace();
             } catch (IllegalAccessException e) {
@@ -109,6 +125,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        initViews();
+    }
+
+    @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK) {
@@ -132,24 +154,26 @@ public class MainActivity extends AppCompatActivity {
         startActivityForResult(pickImg, Constants.REQUEST_GALLERY_PHOTO);
     }
 
-    private void startCameraIntent(){
+    private void startCameraIntent() {
         Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        if(cameraIntent.resolveActivity(getPackageManager())!=null){
+        if (cameraIntent.resolveActivity(getPackageManager()) != null) {
 
             File imgFile = null;
-            try{
+            try {
                 imgFile = Utils.createImg(this);
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            if(imgFile!=null){
-                imgUri = FileProvider.getUriForFile(getApplicationContext(), BuildConfig.APPLICATION_ID+".provider",imgFile);
+            if (imgFile != null) {
+                imgUri = FileProvider.getUriForFile(getApplicationContext(), BuildConfig.APPLICATION_ID + ".provider", imgFile);
                 cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, imgUri);
-                startActivityForResult(cameraIntent,Constants.REQUEST_IMAGE_CAPTURE);
+                startActivityForResult(cameraIntent, Constants.REQUEST_IMAGE_CAPTURE);
             }
 
         }
     }
+
+
 
 
     private void observe() {
@@ -160,17 +184,18 @@ public class MainActivity extends AppCompatActivity {
         });
         mViewModel.outputLiveData.observe(this, bitmap -> {
             if (bitmap != null) {
-                Log.d(TAG,"bitmap w h = " + bitmap.getWidth() + ", " + bitmap.getWidth());
+                Log.d(TAG, "bitmap w h = " + bitmap.getWidth() + ", " + bitmap.getWidth());
+//                loadingView.setVisibility(View.GONE);
                 mOutput.setImageBitmap(bitmap);
             }
         });
-        mViewModel.isLoading.observe(this, isLoading -> {
-            if(isLoading!=null){
-                Log.d(TAG,"loading value: " + isLoading);
-                loadingView.setVisibility(isLoading? View.VISIBLE : View.GONE);
-            }
-
-        });
+//        mViewModel.isLoading.observe(this, isLoading -> {
+//            if (isLoading != null) {
+//                Log.d(TAG, "loading value: " + isLoading);
+//                loadingView.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+//            }
+//
+//        });
 
 
     }
@@ -184,19 +209,6 @@ public class MainActivity extends AppCompatActivity {
 
     @BindView(R.id.chunkinput)
     TextView mChunkInput;
-
-    @BindView(R.id.progressBar2)
-    ProgressBar loadingView;
-
-    @OnClick(R.id.start)
-    void click() {
-        mViewModel.setChunkSize(Integer.parseInt(mChunkInput.getText().toString()));
-        if (mViewModel.getmBitmap() != null) {
-            mViewModel.getOutput();
-
-        }
-        observe();
-    }
 
     @OnTouch(R.id.plus_button)
     void plus() {

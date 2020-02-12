@@ -63,7 +63,6 @@ public class MainViewModel extends AndroidViewModel {
         Bitmap bit = mLoader.getOutput(mBitmap, chunkSize, isPixel);
         Log.d(TAG, "getOutput w h = " + bit.getWidth() + ", " + mBitmap.getHeight());
         if (bit != null) {
-            isLoading.setValue(false);
             Log.d(TAG, "isLoading : " + isLoading.getValue());
             outputLiveData.setValue(bit);
         }
