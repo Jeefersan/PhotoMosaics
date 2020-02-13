@@ -9,18 +9,6 @@
     android:background="#00FFFFFF"
     tools:context=".ui.MainActivity">
 
-    <ProgressBar
-        android:id="@+id/loading_view"
-        android:layout_width="200dp"
-        android:layout_height="200dp"
-        android:layout_gravity="center"
-        android:background="#00FFFFFF"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
 
     <ImageView
         android:id="@+id/inputview"
@@ -38,13 +26,42 @@
         app:layout_constraintVertical_bias="0.428"
         tools:srcCompat="@tools:sample/avatars[0]" />
 
+    <FrameLayout
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@color/primary_light"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.686"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/guideline" />
+
+    <ProgressBar
+        android:id="@+id/loading_view"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:layout_gravity="center"
+        android:background="#00FFFFFF"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <com.github.chrisbanes.photoview.PhotoView
         android:id="@+id/output"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         android:layout_gravity="center"
 
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/guideline2"
+        app:layout_constraintTop_toTopOf="@+id/guideline"
         tools:srcCompat="@tools:sample/avatars[12]" />
 
 
@@ -52,20 +69,22 @@
         android:id="@+id/startBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
         android:layout_marginBottom="36dp"
         android:text="START"
         app:layout_constraintBottom_toTopOf="@+id/guideline"
         app:layout_constraintEnd_toStartOf="@+id/guideline6"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="@+id/guideline2" />
 
     <Button
         android:id="@+id/browse"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
         android:layout_marginTop="32dp"
         android:text="Load Image"
         app:layout_constraintEnd_toStartOf="@+id/guideline6"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/guideline2"
         app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.appcompat.widget.SwitchCompat
@@ -170,5 +189,21 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.34"
         app:srcCompat="@drawable/ic_remove_circle_black_24dp" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_begin="8dp"
+        app:layout_constraintGuide_end="411dp" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_end="8dp"
+        app:layout_constraintGuide_percent="0.96107054" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

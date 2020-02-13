@@ -4,8 +4,7 @@ import android.app.Application;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
-import android.os.Handler;
-import android.os.Looper;
+
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -20,12 +19,13 @@ import com.bumptech.glide.request.transition.Transition;
 import com.jeefersan.photomosaics.utils.BitmapUtils;
 import com.jeefersan.photomosaics.utils.Loader;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public class MainViewModel extends AndroidViewModel {
     public MutableLiveData<Bitmap> outputLiveData = new MutableLiveData<>();
     public MutableLiveData<Bitmap> inputLiveData = new MutableLiveData<>();
     public MutableLiveData<Boolean> isLoading = new MutableLiveData<>();
-
-    private Handler mUiHandler = new Handler(Looper.getMainLooper());
 
     private final String TAG = "MainViewModel";
     private Loader mLoader;
@@ -45,11 +45,7 @@ public class MainViewModel extends AndroidViewModel {
                 .into(new CustomTarget<Bitmap>() {
                     @Override
                     public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
-                        Bitmap tmp = resource;
-                        if (BitmapUtils.isTooBig(tmp)) {
-                            BitmapUtils.scaleDown(tmp);
-                        }
-                        mBitmap = tmp;
+                        mBitmap = BitmapUtils.scaleDown(resource);
                         inputLiveData.setValue(mBitmap);
                     }
 
@@ -64,7 +60,7 @@ public class MainViewModel extends AndroidViewModel {
     public void getOutput() {
         isLoading.postValue(true);
 
-        new Thread(() -> {
+        Runnable runnable = () -> {
             Bitmap bit = mLoader.getOutput(mBitmap, chunkSize, isPixel);
             Log.d(TAG, "getOutput w h = " + bit.getWidth() + ", " + mBitmap.getHeight());
             if (bit != null) {
@@ -72,14 +68,11 @@ public class MainViewModel extends AndroidViewModel {
                 isLoading.postValue(false);
                 outputLiveData.postValue(bit);
             }
-        }).start();
+        };
 
+        ExecutorService executor = Executors.newCachedThreadPool();
+        executor.submit(runnable);
 
-
-    }
-
-    public Bitmap getmBitmap() {
-        return mBitmap;
     }
 
     public void setPixel(boolean b) {

@@ -60,9 +60,18 @@
         <item name="android:background">@drawable/btn_design</item>
     </style>
 
+    <style name="SplashTheme" parent="Theme.MaterialComponents.Bridge">
+        <item name="android:background">@drawable/splashbg</item>
 
+    </style>
 
-
+    <style name="splash_text">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textAlignment">gravity</item>
+        <item name="android:textSize">36sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
 
 
 </resources>

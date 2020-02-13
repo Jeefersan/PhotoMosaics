@@ -1,14 +1,26 @@
 package com.jeefersan.photomosaics.utils;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.util.Log;
 
+import androidx.core.content.FileProvider;
+
+import com.jeefersan.photomosaics.BuildConfig;
 import com.jeefersan.photomosaics.Constants;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+
 
 public class BitmapUtils {
 
@@ -37,23 +49,36 @@ public class BitmapUtils {
     }
 
     public static Bitmap scaleDown(Bitmap b) {
-        Bitmap bit = b;
-        double w = bit.getWidth();
-        double h = bit.getHeight();
-        Log.d("bmputils", "before mbitmap w h = " + bit.getWidth() + ", " + bit.getHeight());
+        if(!isTooBig(b)){
+            return b;
+        }
+
+        double w = b.getWidth();
+        double h = b.getHeight();
+        Log.d("bmputils", "before mbitmap w h = " + b.getWidth() + ", " + b.getHeight());
         double scaleFactor = (w * h) / Constants.MAX_RESOLUTION;
         Log.d("Bmputils","scalefactor: " + scaleFactor);
 
         int w2 = (int)(w/scaleFactor);
         int h2 = (int)(h/scaleFactor);
 
-        Log.d("BmpUtils", "scaling..");
-        Bitmap.createScaledBitmap(bit, w2,h2, false);
+        Callable<Bitmap> callable = () -> Bitmap.createScaledBitmap(b, w2,h2, false);
 
+        FutureTask<Bitmap> future = new FutureTask<Bitmap>(callable);
+        future.run();
 
+        Bitmap beet = null;
 
-        Log.d("bmputils", "after mbitmap w h = " + bit.getWidth() + ", " + bit.getHeight());
-        return bit;
+        try {
+            beet = future.get();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        Log.d("bmputils", "after mbitmap w h = " + beet.getWidth() + ", " + beet.getHeight());
+        return beet;
     }
 
     public static boolean isTooBig(Bitmap b) {
@@ -97,6 +122,22 @@ public class BitmapUtils {
         }
 
         return map;
+    }
+
+    public static Uri bmpToUri(Context context, Bitmap bitmap){
+        try {
+            File cachePath = new File(context.getCacheDir(), "images");
+            cachePath.mkdirs();
+            FileOutputStream stream = new FileOutputStream(cachePath + "/image.png");
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+            stream.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        File imagePath = new File(context.getCacheDir(), "images");
+        File newFile = new File(imagePath, "image.png");
+        return FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", newFile);
     }
 
 

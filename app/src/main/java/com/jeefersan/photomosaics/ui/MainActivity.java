@@ -4,36 +4,35 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
-import android.provider.MediaStore;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
-import androidx.core.content.FileProvider;
 import androidx.lifecycle.ViewModelProviders;
 
 import com.github.chrisbanes.photoview.PhotoView;
-import com.jeefersan.photomosaics.BuildConfig;
 import com.jeefersan.photomosaics.Constants;
 import com.jeefersan.photomosaics.R;
+import com.jeefersan.photomosaics.utils.BitmapUtils;
+import com.jeefersan.photomosaics.utils.IntentHelper;
 import com.jeefersan.photomosaics.utils.Utils;
 
-import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import butterknife.OnClick;
 import butterknife.OnTouch;
 
 /**
@@ -45,9 +44,9 @@ public class MainActivity extends AppCompatActivity {
     private MainViewModel mViewModel;
     private SwitchCompat mSwitch;
     private Button mBrowseBtn;
-    private Button mStartBtn;
-    private ProgressBar loadingView;
-    private Uri imgUri;
+    private IntentHelper intentHelper;
+
+    private Uri mUri;
 
     private final String TAG = "MainActivity";
 
@@ -55,38 +54,24 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        intentHelper = new IntentHelper(this);
         initViews();
-
         observe();
-
     }
 
     private void initViews() {
         ButterKnife.bind(this);
         mViewModel = ViewModelProviders.of(this).get(MainViewModel.class);
-        mChunkInput.setText("" + 30);
+        mChunkInput.setText("" + Constants.CHUNK_SIZE);
 
         loadingView = findViewById(R.id.loading_view);
         mBrowseBtn = findViewById(R.id.browse);
-        mStartBtn = findViewById(R.id.startBtn);
+
         mSwitch = findViewById(R.id.switch1);
         mSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
             mViewModel.setPixel(isChecked);
         });
-        mStartBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                observe();
 
-                if (mInput.getDrawable() != null) {
-                    mViewModel.setChunkSize(Integer.parseInt(mChunkInput.getText().toString()));
-                    mViewModel.getOutput();
-                }
-
-
-            }
-        });
         mBrowseBtn.setOnClickListener(v -> {
             PopupMenu popupMenu = new PopupMenu(getApplicationContext(), v);
 
@@ -106,11 +91,11 @@ public class MainActivity extends AppCompatActivity {
             popupMenu.setOnMenuItemClickListener(item -> {
                 switch (item.getItemId()) {
                     case R.id.choose_from_gallery:
-                        pickFromGallery();
+                        startIntent(Constants.REQUEST_GALLERY_PHOTO);
                         return true;
 
                     case R.id.take_new_photo:
-                        startCameraIntent();
+                        startIntent(Constants.REQUEST_IMAGE_CAPTURE);
                         return true;
                 }
                 return false;
@@ -120,11 +105,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        initViews();
-    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
@@ -135,40 +115,33 @@ public class MainActivity extends AppCompatActivity {
                     mViewModel.parseInput(data.getData());
                     break;
                 case Constants.REQUEST_IMAGE_CAPTURE:
-                    mViewModel.parseInput(imgUri);
+                    mViewModel.parseInput(intentHelper.getImgUri());
                     break;
             }
-
-        }
-
-    }
-
-    private void pickFromGallery() {
-        Intent pickImg = new Intent(Intent.ACTION_PICK,
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        pickImg.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        startActivityForResult(pickImg, Constants.REQUEST_GALLERY_PHOTO);
-    }
-
-    private void startCameraIntent() {
-        Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        if (cameraIntent.resolveActivity(getPackageManager()) != null) {
-
-            File imgFile = null;
-            try {
-                imgFile = Utils.createImg(this);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            if (imgFile != null) {
-                imgUri = FileProvider.getUriForFile(getApplicationContext(), BuildConfig.APPLICATION_ID + ".provider", imgFile);
-                cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, imgUri);
-                startActivityForResult(cameraIntent, Constants.REQUEST_IMAGE_CAPTURE);
-            }
-
         }
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.share_menu, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == R.id.share) {
+            if (mUri != null) {
+                startIntent(Constants.REQUEST_SHARE);
+            }
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void startIntent(int req) {
+        Intent intent = intentHelper.getIntent(req, mUri);
+        startActivityForResult(intent, req);
+
+    }
 
     private void observe() {
         mViewModel.inputLiveData.observe(this, bitmap -> {
@@ -180,23 +153,22 @@ public class MainActivity extends AppCompatActivity {
             if (bitmap != null) {
                 mOutput.setImageBitmap(bitmap);
                 mOutput.setVisibility(View.VISIBLE);
-
+                mUri = BitmapUtils.bmpToUri(this, bitmap);
             }
         });
         mViewModel.isLoading.observe(this, isLoading -> {
             if (isLoading != null) {
                 Log.d(TAG, "loading value: " + isLoading);
                 loadingView.setVisibility(isLoading ? View.VISIBLE : View.GONE);
-                if(isLoading){
+                if (isLoading) {
                     mOutput.setVisibility(View.GONE);
                 }
             }
-
         });
-
-
     }
 
+    @BindView(R.id.loading_view)
+    ProgressBar loadingView;
 
     @BindView(R.id.inputview)
     ImageView mInput;
@@ -207,6 +179,16 @@ public class MainActivity extends AppCompatActivity {
     @BindView(R.id.chunkinput)
     TextView mChunkInput;
 
+    @OnClick(R.id.startBtn)
+    void start() {
+        observe();
+
+        if (mInput.getDrawable() != null) {
+            mViewModel.setChunkSize(Integer.parseInt(mChunkInput.getText().toString()));
+            mViewModel.getOutput();
+        }
+    }
+
     @OnTouch(R.id.plus_button)
     void plus() {
         if (!Utils.isInRange(Integer.parseInt(mChunkInput.getText().toString()) + 1)) {
@@ -215,7 +197,6 @@ public class MainActivity extends AppCompatActivity {
             mChunkInput.setText(String.valueOf(Integer.parseInt(mChunkInput.getText().toString()) + 1));
         }
     }
-
 
     @OnTouch(R.id.minus_button)
     void minus() {

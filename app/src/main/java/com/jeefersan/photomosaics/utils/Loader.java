@@ -23,11 +23,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 
 
 public class Loader extends AndroidViewModel {
-
     private final String TAG = "Loader";
     private int chunkSize;
 
@@ -130,18 +131,13 @@ public class Loader extends AndroidViewModel {
                     bit = scaleImg(map.get(key));
                     bmpArr[i][j] = bit;
                 }
-
             }
         }
-
         return bmpArr;
-
     }
 
 
     private int[][] getColorAvgArray(List<Bitmap> list) {
-
-
         mColorAvgArray = new int[yChunks][xChunks];
 
         int i = 0;
@@ -151,8 +147,6 @@ public class Loader extends AndroidViewModel {
                 i++;
             }
         }
-
-        Log.d(TAG, "mColorAvgArray size = " + mColorAvgArray.length * mColorAvgArray[0].length);
 
         return mColorAvgArray;
     }
@@ -174,7 +168,6 @@ public class Loader extends AndroidViewModel {
                     canvas.drawBitmap(bmp, j * chunkSize, i * chunkSize, paint);
                 }
             }
-
             return m;
         };
 
